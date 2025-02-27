@@ -28,6 +28,10 @@ The overall development stack looks like this:
 ![Synthesiser development stack](synth-stack.png)
 
 Get started by installing Platformio and forking the starter code
+
+> [!WARNING]  
+> The first time you open or compile a project in Platformio you may see some tasks that take a long time as the necessary compiler and libraries are installed. Windows seems to be especially slow as all the new files are automatically checked for malware. Do not abort anything because the package installation may be incomplete and Platformio cannot automatically repair broken packages. If compilation fails due to missing files, you can delete the appropriate package directory from `<your home directory\.platformio\packages` and Platformio will install it when you next compile.
+
 1. Install Visual Studio Code, if you don’t have it already, and add Platformio from the website, or by searching for it in the VS Code extensions marketplace
 2. Fork the starter code from GitHub. You can use the GitHub extension for VS Code, use git from the command line or any other client, or download the zipped project files from GitHub. Open the project folder in VS Code
 3. Switch to the Platformio Home tab with the 🏠 button on the bottom toolbar and select the libraries view. Search for the U8g2 display driver library, select the latest version and add it to the project.
@@ -328,6 +332,11 @@ Currently, the keys are read once every execution of the main loop.
 The main loop is also used to update the display, which is not ideal because it forces these tasks to have the same initiation interval.
 We will separate these two processes into different tasks by creating a thread to run the key scanning task.
 
+> [!IMPORTANT]
+> 
+> Your code will not run if you include STM32duino FreeRTOS as a library dependency but you don't start the scheduler.
+> Be sure to follow all the instructions below and always call `vTaskStartScheduler()` at the end of `setup()` if FreeRTOS is listed as a project dependency.
+
 1. Create a global struct that will store system state that is used in more than one thread:
 	```C++
 	struct {
@@ -393,12 +402,6 @@ We will separate these two processes into different tasks by creating a thread t
 	The stack needs to be large enough to store all the local variables of the functions called in the thread.
 
 	Remove the call to `scanKeysTask()` from the main loop.
-
-	
-> [!IMPORTANT]
-> 
-> Your code will not run if you include STM32duino FreeRTOS as a library dependency but you don't start the scheduler.
-> Initialise everything else before starting the scheduler with `vTaskStartScheduler()`.
 
 4.	The thread will need to execute at a constant rate, which will be the sample rate of our keyboard.
 	We can use the RTOS function `vTaskDelayUntil()` to do this — it blocks execution until a certain time has passed since the last time the function was completed.
